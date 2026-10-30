@@ -29,10 +29,12 @@ jobs:
     runs-on: ${{ inputs.arch == 'x64' && 'macos-13' || 'macos-14' }}
     timeout-minutes: 40
     steps:
-      - name: 从 CNB 拉取源码(凭据 = Secrets.CNB_PULL_TOKEN,仅 repo-code:r)
+      - name: 从 CNB 拉取源码(凭据 = Secrets.CNB_PULL_TOKEN,仅 repo-code:r;走 credential helper,日志不出现 token)
         env:
           CNB_PULL_TOKEN: ${{ secrets.CNB_PULL_TOKEN }}
-        run: git clone --depth 1 "https://cnb:${CNB_PULL_TOKEN}@${CNB_REPO}" src
+        run: |
+          git config --global credential.helper '!f(){ echo "username=cnb"; echo "password=$CNB_PULL_TOKEN"; }; f'
+          git clone --depth 1 "https://${CNB_REPO}" src
 
       - name: 安装 Python 3.12
         uses: actions/setup-python@v5
@@ -54,7 +56,7 @@ jobs:
           echo "ZIP_NAME=$(basename "$Z")" >> "$GITHUB_ENV"
           echo "ZIP_PATH=${GITHUB_WORKSPACE}/src/${Z}" >> "$GITHUB_ENV"
 
-      - name: 产物推回 CNB 源码仓 dist/(凭据 = Secrets.CNB_PUSH_TOKEN,repo-code:rw)
+      - name: 产物推回 CNB 源码仓 dist/(凭据 = Secrets.CNB_PUSH_TOKEN,repo-code:rw;走 credential helper,日志不出现 token)
         working-directory: src
         env:
           CNB_PUSH_TOKEN: ${{ secrets.CNB_PUSH_TOKEN }}
@@ -68,7 +70,7 @@ jobs:
           done
           git add -f "dist/$ZIP_NAME" dist/latest.json
           git commit -m "mac build $ZIP_NAME (gh run ${{ github.run_id }})"
-          git remote set-url origin "https://cnb:${CNB_PUSH_TOKEN}@${CNB_REPO}"
+          git config --global credential.helper '!f(){ echo "username=cnb"; echo "password=$CNB_PUSH_TOKEN"; }; f'
           git push origin HEAD:main
           echo "回传完成,下载页: https://${CNB_REPO}/-/blob/main/dist/"
           echo "latest:      https://api.${CNB_REPO}/-/git/raw/main/dist/latest.json"
