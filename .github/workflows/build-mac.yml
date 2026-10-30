@@ -56,7 +56,7 @@ jobs:
           echo "ZIP_NAME=$(basename "$Z")" >> "$GITHUB_ENV"
           echo "ZIP_PATH=${GITHUB_WORKSPACE}/src/${Z}" >> "$GITHUB_ENV"
 
-      - name: 产物推回 CNB 源码仓 dist/(凭据 = Secrets.CNB_PUSH_TOKEN,repo-code:rw;走 credential helper,日志不出现 token)
+      - name: 产物推回 CNB 源码仓 dist/(凭据 = Secrets.CNB_PUSH_TOKEN,repo-code:rw;push URL 显式携带,GitHub 日志自动打码)
         working-directory: src
         env:
           CNB_PUSH_TOKEN: ${{ secrets.CNB_PUSH_TOKEN }}
@@ -70,8 +70,7 @@ jobs:
           done
           git add -f "dist/$ZIP_NAME" dist/latest.json
           git commit -m "mac build $ZIP_NAME (gh run ${{ github.run_id }})"
-          git config --global credential.helper '!f(){ echo "username=cnb"; echo "password=$CNB_PUSH_TOKEN"; }; f'
-          git push origin HEAD:main
+          git push "https://cnb:${CNB_PUSH_TOKEN}@${CNB_REPO}" HEAD:main
           echo "回传完成,下载页: https://${CNB_REPO}/-/blob/main/dist/"
           echo "latest:      https://api.${CNB_REPO}/-/git/raw/main/dist/latest.json"
 
