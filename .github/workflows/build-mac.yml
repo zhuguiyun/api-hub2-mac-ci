@@ -52,7 +52,9 @@ jobs:
           MAC_NOTES: ${{ inputs.notes }}
         run: |
           bash build-mac.sh
-          Z=$(ls dist/api-hub2-*-darwin-*.zip | head -1)
+          # 按 mtime 取最新:clone 时 dist/ 已带源码仓旧 darwin zip,新构建的 zip mtime 必最新;
+          # 纯 ls 字典序会在版本升级时选中旧 zip(2.0.30 < 2.0.31),导致新 zip 不进 commit(gh run 41011677039 事故)。
+          Z=$(ls -t dist/api-hub2-*-darwin-*.zip | head -1)
           echo "ZIP_NAME=$(basename "$Z")" >> "$GITHUB_ENV"
           echo "ZIP_PATH=${GITHUB_WORKSPACE}/src/${Z}" >> "$GITHUB_ENV"
 
