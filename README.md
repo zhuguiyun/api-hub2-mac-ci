@@ -15,10 +15,26 @@ GitHub Actions 触发 mac 打包:源码从 CNB 私有仓 `yunone.top/api-hub2` �
 
 Actions → build-mac → Run workflow → 选架构 → Run:
 
-- `arm64` = Apple Silicon(M1/M2/M3/M4),跑在 macos-14
-- `x64` = Intel,跑在 macos-13
+- `arm64` = Apple Silicon(M1/M2/M3/M4),跑在 `macos-15`(arm64)
+- `x64` = Intel,跑在 `macos-15-intel`(x64)
 
 约 5-10 分钟跑完。
+
+## runner 标签(2026-11-09 迁移)
+
+GitHub 已下线 `macos-13` / `macos-14` 镜像:用旧标签触发时 job 会在 1 秒内被拒,注解为
+`The configuration 'macos-14-arm64-us-default' is not supported`(gh run 42550960378)。
+
+现在公开仓可用的 macOS 标准 runner(见 docs:Standard runners for public repositories):
+
+| 架构 | 可用标签 |
+|---|---|
+| arm64(Apple Silicon) | `macos-15`、`macos-26`、`macos-latest` |
+| Intel(x64) | `macos-15-intel`、`macos-26-intel` |
+
+工作流固定用 `macos-15` / `macos-15-intel`(与 macOS 14 最接近的稳定版本);
+`-large` / `-xlarge` 属付费 larger runner,本账号会因账单/额度被拒。
+job 第一步会校验 runner 真实架构与所选 `arch` 一致,不一致直接失败,避免产出错架构的 zip。
 
 ## 取产物
 

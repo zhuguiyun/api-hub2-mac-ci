@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       arch:
-        description: "arm64 = Apple Silicon (macos-14) / x64 = Intel (macos-13)"
+        description: "arm64 = Apple Silicon (macos-15) / x64 = Intel (macos-15-intel)"
         type: choice
         options:
           - arm64
@@ -26,9 +26,25 @@ env:
 
 jobs:
   build:
-    runs-on: ${{ inputs.arch == 'x64' && 'macos-13' || 'macos-14' }}
+    # 2026-11-09:GitHub 已下线 macos-13 / macos-14 镜像,旧标签会让 job 在 1 秒内被拒
+    # (注解:The configuration 'macos-14-arm64-us-default' is not supported,gh run 42550960378 事故)。
+    # 现在可用(见 docs: Standard runners for public repositories):
+    #   arm64 = macos-15 / macos-26 / macos-latest,x64 = macos-15-intel / macos-26-intel
+    # 实测:2026-11-09 探针矩阵中 macos-15 与 macos-15-intel 均拿到 runner 并成功。
+    runs-on: ${{ inputs.arch == 'x64' && 'macos-15-intel' || 'macos-15' }}
     timeout-minutes: 40
     steps:
+      - name: 校验 runner 架构与所选 arch 一致(避免产物名与真实架构不符)
+        run: |
+          case "$(uname -m)" in
+            arm64)  actual=arm64 ;;
+            x86_64) actual=x64   ;;
+            *) echo "::error::无法识别架构 $(uname -m)"; exit 1 ;;
+          esac
+          echo "requested=${{ inputs.arch }} actual=$actual os=$(sw_vers -productVersion)"
+          [ "$actual" = "${{ inputs.arch }}" ] \
+            || { echo "::error::runner 架构($actual)与所选(${{ inputs.arch }})不一致"; exit 1; }
+
       - name: 从 CNB 拉取源码(凭据 = Secrets.CNB_PULL_TOKEN,仅 repo-code:r;走 credential helper,日志不出现 token)
         env:
           CNB_PULL_TOKEN: ${{ secrets.CNB_PULL_TOKEN }}
